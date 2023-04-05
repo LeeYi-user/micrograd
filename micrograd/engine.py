@@ -1,6 +1,7 @@
+import numpy as np
 
 class Value:
-    """ stores a single scalar value and its gradient """
+    """ stores a value and its gradient """
 
     def __init__(self, data, _children=(), _op=''):
         self.data = data
@@ -43,10 +44,54 @@ class Value:
         return out
 
     def relu(self):
-        out = Value(0 if self.data < 0 else self.data, (self,), 'ReLU')
+        out = Value(self.data * (self.data > 0), (self,), 'ReLU')
 
         def _backward():
             self.grad += (out.data > 0) * out.grad
+        out._backward = _backward
+
+        return out
+
+    def matmul(self, other):
+        other = other if isinstance(other, Value) else Value(other)
+        out = Value(np.matmul(self.data, other.data), (self, other), 'matmul')
+
+        def _backward():
+            self.grad += np.dot(out.grad, other.data.T)
+            other.grad += np.dot(self.data.T, out.grad)
+        out._backward = _backward
+
+        return out
+
+    def softmax(self):
+        f = np.exp(self.data - np.amax(self.data, axis = 1)[:, None])
+        out =  Value(f / np.sum(f, axis = 1)[:, None], (self,), 'softmax')
+
+        def _backward():
+            self.grad += out.data * (out.grad - np.reshape(np.sum(out.data * out.grad, axis = 1), [-1, 1]))
+        out._backward = _backward
+
+        return out
+
+    def log(self):
+        result = np.where(self.data > 1e-5, self.data, 1e-5)
+        out = Value(np.log(result), (self,), 'log')
+
+        def _backward():
+            self.grad += out.grad / result
+        out._backward = _backward
+
+        return out
+
+    def reduce_sum(self, axis = None):
+        out = Value(np.sum(self.data, axis = axis), (self,), 'REDUCE_SUM')
+
+        def _backward():
+            output_shape = np.array(self.data.shape)
+            output_shape[axis] = 1
+            tile_scaling = self.data.shape // output_shape
+            grad = np.reshape(out.grad, output_shape)
+            self.grad += np.tile(grad, tile_scaling)
         out._backward = _backward
 
         return out
