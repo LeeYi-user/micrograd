@@ -19,13 +19,13 @@ class Layer(Module):
 
     def __call__(self, x):
         act = x.matmul(self.w) + self.b
-        return act.relu() if self.nonlin else act.softmax()
+        return act.relu() if self.nonlin else act
 
     def parameters(self):
-        return [self.w, self.b]
+        return self.w, self.b
 
     def __repr__(self):
-        return f"{'ReLU' if self.nonlin else 'Softmax'}{self.w.data.shape}"
+        return f"{'ReLU' if self.nonlin else 'Linear'}Layer{self.w.data.shape}"
 
 class MLP(Module):
 
