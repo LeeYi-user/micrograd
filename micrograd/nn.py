@@ -13,8 +13,8 @@ class Module:
 class Layer(Module):
 
     def __init__(self, nin, nout, nonlin=True):
-        self.w = Value(np.random.randn(nin, nout))
-        self.b = Value(np.random.randn(nout))
+        self.w = Value(0.1 * np.random.randn(nin, nout))
+        self.b = Value(0.1 * np.random.randn(nout))
         self.nonlin = nonlin
 
     def __call__(self, x):
